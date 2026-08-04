@@ -12,6 +12,7 @@ const {
 } = Astro.props;
 
 const canonical = new URL(Astro.url.pathname, Astro.site ?? 'https://gregjones.io').toString();
+const ogImage = new URL('/og.png', Astro.site ?? 'https://gregjones.io').toString();
 ---
 
 <!doctype html>
@@ -32,9 +33,14 @@ const canonical = new URL(Astro.url.pathname, Astro.site ?? 'https://gregjones.i
     <meta property="og:description" content={description} />
     <meta property="og:url" content={canonical} />
     <meta property="og:site_name" content="gregjones.io" />
-    <meta name="twitter:card" content="summary" />
+    <meta property="og:image" content={ogImage} />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Greg Jones — Building systems that compound. Family Office · Venture Capital · Automation." />
+    <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content={title} />
     <meta name="twitter:description" content={description} />
+    <meta name="twitter:image" content={ogImage} />
 
     <meta name="robots" content="index, follow" />
   </head>
