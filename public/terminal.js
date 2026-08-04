@@ -7,6 +7,9 @@ const DATA = JSON.parse(document.getElementById('site-data').textContent);
 const { commands, sections, status, askGreg, identity } = DATA;
 
 const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+// Touch devices: never auto-focus the input — focusing opens the on-screen
+// keyboard and scrolls the page to the prompt. Users tap the input themselves.
+const touch = window.matchMedia('(hover: none), (pointer: coarse)').matches;
 
 const el = {
   boot: document.getElementById('boot'),
@@ -49,7 +52,7 @@ function enterSystem() {
     el.boot.style.display = 'none';   // force out of layout (class display:grid overrides [hidden])
     el.system.hidden = false;
     window.scrollTo(0, 0);
-    try { el.input.focus({ preventScroll: true }); } catch (_) {}
+    if (!touch) { try { el.input.focus({ preventScroll: true }); } catch (_) {} }
     bootLog();
   }, reduce ? 0 : 420);
 }
@@ -323,7 +326,7 @@ el.menu.addEventListener('click', (e) => {
   if (!btn) return;
   if (mode === 'ask') { mode = 'shell'; el.promptUser.textContent = 'greg@system'; el.input.placeholder = 'type a command, or `help`'; }
   run('/' + btn.dataset.cmd);
-  el.input.focus();
+  if (!touch) el.input.focus();
 });
 
 // command history with arrow keys
@@ -333,4 +336,4 @@ el.input.addEventListener('keydown', (e) => {
 });
 
 // keep focus on the input when clicking anywhere in the terminal output
-el.output.addEventListener('click', (e) => { if (!e.target.closest('a, .sg')) el.input.focus(); });
+el.output.addEventListener('click', (e) => { if (!touch && !e.target.closest('a, .sg')) el.input.focus(); });
