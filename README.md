@@ -6,7 +6,9 @@ Not a portfolio. An operating system for a modern capital allocator.
 > Building systems that compound.
 
 Bloomberg Terminal × Apple minimalism × private family office. Dark, minimal, high-status.
-Static-first, near-zero JavaScript, no tracking, no stock imagery.
+Static-first, near-zero JavaScript, no stock imagery. Analytics are first-party,
+cookieless aggregates only (page views, daily visitor counts via a salted daily
+hash, command usage) — no third parties, no IPs stored, no cross-day tracking.
 
 ---
 

@@ -11,6 +11,13 @@ const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 // keyboard and scrolls the page to the prompt. Users tap the input themselves.
 const touch = window.matchMedia('(hover: none), (pointer: coarse)').matches;
 
+/* First-party, cookieless analytics beacon. Sends only an event name —
+   no query text, no identifiers. Fire-and-forget; failures are ignored. */
+function track(e) {
+  try { navigator.sendBeacon('/api/beacon', JSON.stringify({ e })); } catch (_) {}
+}
+track('pv');
+
 const el = {
   boot: document.getElementById('boot'),
   enter: document.getElementById('enterBtn'),
@@ -53,6 +60,7 @@ function enterSystem() {
     el.system.hidden = false;
     window.scrollTo(0, 0);
     if (!touch) { try { el.input.focus({ preventScroll: true }); } catch (_) {} }
+    track('enter');
     bootLog();
   }, reduce ? 0 : 420);
 }
@@ -116,6 +124,7 @@ function run(raw) {
 
   const cmd = input.replace(/^\//, '').toLowerCase().split(/\s+/)[0];
   const rest = input.replace(/^\S+\s*/, '');
+  track('cmd:' + cmd); // server keeps a whitelist; unknown commands are dropped
 
   switch (cmd) {
     case 'help':    return cmdHelp();
@@ -291,6 +300,8 @@ function runAsk(text) {
   }
   // allow slash-commands to escape ask mode
   if (text.trim().startsWith('/')) { mode = 'shell'; el.promptUser.textContent = 'greg@system'; return run(text); }
+
+  track('ask:question'); // count only that a question was asked, never its content
 
   // Match curated entries only. Multi-word keys match as a phrase;
   // single-word keys match as a whole word so short keys (e.g. "ai")

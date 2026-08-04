@@ -2,11 +2,23 @@
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "gregjonessite",
   "compatibility_date": "2025-06-01",
-  // Static Astro site: no Worker entry-point. Serve the built `dist/`
-  // directory as static assets (Cloudflare Workers Static Assets).
+  // Worker entry-point: first-party analytics (/api/beacon, /api/stats).
+  // All other requests fall through to the static assets below.
+  "main": "worker/index.js",
+  // Static Astro site served from the built `dist/` directory
+  // (Cloudflare Workers Static Assets). Assets are matched before the
+  // Worker runs, so only non-asset paths (e.g. /api/*) hit the code.
   "assets": {
-    "directory": "./dist"
+    "directory": "./dist",
+    "binding": "ASSETS",
+    // /api/* must always reach the Worker (POST beacons were otherwise
+    // answered by the asset layer with a 404).
+    "run_worker_first": ["/api/*"]
   },
+  "durable_objects": {
+    "bindings": [{ "name": "STATS", "class_name": "SiteStats" }]
+  },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["SiteStats"] }],
   // Build the static output before upload, so `dist/` always exists in CI.
   "build": {
     "command": "npm run build"
