@@ -63,7 +63,14 @@ const fmt = (v, f) =>
       if (fmt === 'dec') return Number(v).toFixed(1);
       return Math.round(v).toLocaleString('en-US');
     };
-    fetch(source, { headers: { accept: 'application/json' }, signal: AbortSignal.timeout(4000) })
+    // AbortSignal.timeout is constructed while building the options object, so
+    // on a browser without it this throws synchronously, before any promise
+    // exists for .catch to handle. Build it defensively and carry on without a
+    // timeout rather than throwing on the page.
+    var opts = { headers: { accept: 'application/json' } };
+    try { opts.signal = AbortSignal.timeout(4000); } catch (e) { /* no timeout available */ }
+
+    fetch(source, opts)
       .then(function (r) { return r.ok ? r.json() : null; })
       .then(function (j) {
         var m = j && (j.metrics || j);

@@ -90,13 +90,26 @@ export const links = [
   { label: 'Crunchbase', href: 'https://www.crunchbase.com/person/greg-jones-266e', note: null, sameAs: true },
 ];
 
-/** Primary navigation across the crawlable pages. Order is render order. */
-export const nav = [
-  { label: 'About', href: '/about' },
-  { label: 'Automation', href: '/automation' },
-  { label: 'Building', href: '/building' },
-  { label: 'Writing', href: '/writing' },
+/**
+ * Every crawlable route, in one place.
+ *
+ * This is the source of truth for both the primary nav and /sitemap.xml, which
+ * was previously a hand-maintained file in /public. Adding a page there meant
+ * remembering to announce it; now adding it here does both. Order is render
+ * order for the nav.
+ */
+export const routes = [
+  { path: '/',           label: 'Home',       inNav: false, changefreq: 'monthly', priority: '1.0' },
+  { path: '/about',      label: 'About',      inNav: true,  changefreq: 'monthly', priority: '0.9' },
+  { path: '/automation', label: 'Automation', inNav: true,  changefreq: 'weekly',  priority: '0.8' },
+  { path: '/building',   label: 'Building',   inNav: true,  changefreq: 'monthly', priority: '0.7' },
+  { path: '/writing',    label: 'Writing',    inNav: true,  changefreq: 'weekly',  priority: '0.8' },
 ];
+
+/** Primary navigation. Derived, so it can never drift from the sitemap. */
+export const nav = routes
+  .filter((r) => r.inNav)
+  .map((r) => ({ label: r.label, href: r.path }));
 
 /** Order matters: this drives the command menu and tab order. */
 export const commands = [
