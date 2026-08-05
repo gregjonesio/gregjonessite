@@ -8,6 +8,11 @@ const siteData = { identity, commands, sections, status, askGreg, essays, links 
 ---
 
 <Base>
+  <!-- One <main> wraps every view, including the boot screen that carries the
+       h1. They were previously two separate <main> elements, which is valid
+       only while all but one is hidden. That held, but it made the document
+       outline depend on runtime state. -->
+  <main>
   <!-- ============ BOOT / COMMAND INTERFACE ============ -->
   <section id="boot" class="boot" aria-label="Entry">
     <div class="shell boot__inner">
@@ -29,7 +34,7 @@ const siteData = { identity, commands, sections, status, askGreg, essays, links 
   </section>
 
   <!-- ============ SYSTEM / TERMINAL ============ -->
-  <main id="system" class="system" hidden aria-label="System">
+  <section id="system" class="system" hidden aria-label="System">
     <div class="shell">
       <div class="term" role="region" aria-label="Command terminal">
         <header class="term__bar">
@@ -39,8 +44,11 @@ const siteData = { identity, commands, sections, status, askGreg, essays, links 
         </header>
 
         <nav class="term__menu mono" aria-label="Commands" id="menu">
+          {/* `title` is hover-only, so it never reaches keyboard or touch
+              users. The accessible name leads with the visible label so it
+              still satisfies Label in Name, then carries the description. */}
           {commands.map((c) => (
-            <button class="chip" data-cmd={c.cmd} title={c.desc}>{c.label}</button>
+            <button class="chip" data-cmd={c.cmd} title={c.desc} aria-label={`${c.label}, ${c.desc}`}>{c.label}</button>
           ))}
         </nav>
 
@@ -63,13 +71,13 @@ const siteData = { identity, commands, sections, status, askGreg, essays, links 
         <span>type <span class="muted">help</span> · <span class="muted">clear</span> · <span class="muted">exit</span></span>
       </footer>
     </div>
-  </main>
+  </section>
 
   <!-- ============ READ VIEW ============
        Rendered normally, not inside <noscript>. Humans who do not want to
        drive a terminal and machines that do not run scripts see the same
        thing. The terminal hides this when it takes over. -->
-  <main id="read" class="read" aria-label="Overview">
+  <section id="read" class="read" aria-label="Overview">
     <div class="shell">
       <div class="prose">
         {identity.bio.map((p) => <p>{p}</p>)}
@@ -104,6 +112,7 @@ const siteData = { identity, commands, sections, status, askGreg, essays, links 
         </p>
       </div>
     </div>
+  </section>
   </main>
 
   <script type="application/json" id="site-data" set:html={JSON.stringify(siteData)}></script>
