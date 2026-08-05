@@ -85,7 +85,7 @@ document.addEventListener('keydown', (e) => {
     the footer advertises. It now returns to the read view. */
 function exitSystem() {
   entered = false;
-  epoch++;                 // abandon anything still queued or in flight
+  owner = {};              // disown anything still drawing
   el.enter.setAttribute('aria-expanded', 'false');
   el.system.hidden = true;
   el.boot.hidden = false;
@@ -107,38 +107,47 @@ function exitSystem() {
  * mean three fast commands produced three echoes followed by three bodies, and
  * `clear` could be refilled by timeouts that were still pending.
  *
- * So every command is a job. Jobs run strictly one after another, and each one
- * owns the screen until it finishes. `epoch` is the cancellation token: `clear`
- * and `exit` bump it, and any in-flight job checks it before touching the DOM.
+ * So every command is a job, and jobs run strictly one after another. Each job
+ * is handed an identity when it starts. Writers capture that identity and check
+ * it before touching the DOM, so a job that has been cleared out or timed out
+ * cannot append to a screen that now belongs to something else.
+ *
+ * Ownership is deliberately not a monotonic counter compared at enqueue time.
+ * That version silently dropped any command typed just after `clear`, because
+ * the counter had moved on by the time the job reached the front of the queue.
  */
 let queue = Promise.resolve();
-let epoch = 0;
+let owner = {};
 
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 
 /**
- * Jobs are raced against a watchdog. Without it a single job that never
- * settles (a hung request, a rejected promise that is never caught) would
- * block every later command forever, and the terminal would look dead with no
- * error to explain it. The watchdog only releases the queue; the stalled job
- * is still free to finish late and is harmless if it does, because it checks
- * the epoch before touching the DOM.
+ * Jobs are raced against a watchdog. Without it a single job that never settles
+ * would block every later command forever and the terminal would look dead with
+ * no error to explain it. The watchdog both releases the queue and disowns the
+ * stalled job, so if it does finish late its writes are discarded rather than
+ * landing in the middle of someone else's output.
  */
 const JOB_TIMEOUT = 8000;
 
 function enqueue(job) {
-  const mine = epoch;
   queue = queue
     .then(() => {
-      if (mine !== epoch) return undefined;
-      return Promise.race([job(), wait(JOB_TIMEOUT)]);
+      const token = (owner = {});
+      return Promise.race([
+        job(),
+        wait(JOB_TIMEOUT).then(() => { if (owner === token) owner = {}; }),
+      ]);
     })
     .catch((err) => { console.error('[terminal]', err); });
   return queue;
 }
 
-/** True while the job that started at `mine` is still the current one. */
-const live = (mine) => mine === epoch;
+/** The identity a writer must hold to be allowed to draw. */
+const claim = () => owner;
+
+/** True while the holder of `token` still owns the screen. */
+const live = (token) => token === owner;
 
 function line(html, cls = '') {
   const div = document.createElement('div');
@@ -156,7 +165,7 @@ function scroll() { el.output.scrollTop = el.output.scrollHeight; }
  * Resolves once the last line is on screen, so the caller can await a block.
  */
 function printLines(items) {
-  const mine = epoch;
+  const mine = claim();
   const step = reduce ? 0 : 55;
   return new Promise((resolve) => {
     let i = 0;
@@ -379,7 +388,7 @@ function baseValues() {
 }
 
 async function printStatus() {
-  const mine = epoch;
+  const mine = claim();
 
   // Header and a loading line go up first. The fetch used to be awaited before
   // anything was printed, which meant a silent ~425ms gap on the one command
@@ -428,6 +437,14 @@ function enterAsk(showIntro) {
   scroll();
 }
 
+/** Restore the shell prompt. Was duplicated in three places, one of which
+    forgot to reset the placeholder. */
+function leaveAskMode() {
+  mode = 'shell';
+  el.promptUser.textContent = 'greg@system';
+  el.input.placeholder = 'type a command, or `help`';
+}
+
 /** The suggestion chips. Buttons, so they are reachable by keyboard. */
 function renderSuggestions() {
   const wrap = line('', 'ln--body');
@@ -468,14 +485,20 @@ function scoreEntry(entry, text, words) {
 async function runAsk(text) {
   const t = text.trim().toLowerCase();
   if (t === 'exit' || t === 'back' || t === '/exit') {
-    mode = 'shell';
-    el.promptUser.textContent = 'greg@system';
-    el.input.placeholder = 'type a command, or `help`';
+    leaveAskMode();
     return printLines([['<span class="ln--mute">← back to system.</span>', ''], ['', 'ln--gap']]);
-    return;
   }
-  // allow slash-commands to escape ask mode
-  if (text.trim().startsWith('/')) { mode = 'shell'; el.promptUser.textContent = 'greg@system'; return run(text); }
+
+  // A slash command escapes ask mode and runs immediately.
+  //
+  // This must call dispatch, not run. `run` enqueues a new job, and we are
+  // already inside one, so the current job would wait on a job that cannot
+  // start until the current job finishes. That deadlocked until the watchdog
+  // broke it eight seconds later.
+  if (text.trim().startsWith('/')) {
+    leaveAskMode();
+    return dispatch(text);
+  }
 
   track('ask:question'); // count only that a question was asked, never its content
 
@@ -494,7 +517,7 @@ async function runAsk(text) {
   items.push(['', 'ln--gap']);
 
   // brief "thinking" beat for texture, then the answer, then a way forward
-  const mine = epoch;
+  const mine = claim();
   await wait(reduce ? 0 : 260);
   if (!live(mine)) return;
   await printLines(items);
@@ -505,11 +528,13 @@ async function runAsk(text) {
 
 /* ---------------- misc ---------------- */
 /**
- * Bumping the epoch is what makes this real. Wiping innerHTML alone left every
- * pending stagger timeout alive, so the screen refilled with what was cleared.
+ * Disowning the screen is what makes this real. Wiping innerHTML alone left
+ * every pending stagger timeout alive, so the screen refilled with what was
+ * cleared. Note this cancels writers already in flight, not commands the user
+ * typed afterwards: those are separate jobs and still run.
  */
 function clear() {
-  epoch++;
+  owner = {};
   el.output.innerHTML = '';
   if (el.announcer) el.announcer.textContent = 'Screen cleared.';
 }
@@ -526,7 +551,7 @@ el.form.addEventListener('submit', (e) => {
 el.menu.addEventListener('click', (e) => {
   const btn = e.target.closest('[data-cmd]');
   if (!btn) return;
-  if (mode === 'ask') { mode = 'shell'; el.promptUser.textContent = 'greg@system'; el.input.placeholder = 'type a command, or `help`'; }
+  if (mode === 'ask') leaveAskMode();
   run('/' + btn.dataset.cmd);
   if (!touch) el.input.focus();
 });
