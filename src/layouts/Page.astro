@@ -1,0 +1,120 @@
+---
+/**
+ * Page.astro — the reading layout.
+ *
+ * Mode is Read, not Operate: the visitor is here to understand something, so
+ * structure serves comprehension first. It borrows the terminal's palette,
+ * accent discipline, and monospace labelling without pretending to be a
+ * terminal. The terminal itself lives at `/`.
+ */
+import Base from './Base.astro';
+import { identity, nav } from '../data/content.js';
+
+interface Props {
+  title: string;
+  description?: string;
+  heading: string;
+  lede?: string;
+}
+
+const { title, description, heading, lede } = Astro.props;
+const path = Astro.url.pathname.replace(/\/$/, '') || '/';
+---
+
+<Base title={title} description={description}>
+  <a class="skip" href="#main">Skip to content</a>
+
+  <header class="siteHead">
+    <div class="shell siteHead__inner">
+      <a class="siteHead__name mono" href="/">{identity.displayName}</a>
+      <nav class="siteNav mono" aria-label="Primary">
+        {nav.map((n) => (
+          <a href={n.href} aria-current={path === n.href ? 'page' : undefined}>{n.label}</a>
+        ))}
+      </nav>
+    </div>
+  </header>
+
+  <main id="main" class="shell page">
+    <h1 class="page__title">{heading}</h1>
+    {lede && <p class="page__lede">{lede}</p>}
+    <slot />
+  </main>
+
+  <footer class="shell siteFoot mono">
+    <p><a href="/">Back to the terminal</a></p>
+    <p class="muted">© {new Date().getFullYear()} {identity.displayName} · <a href={`mailto:${identity.email}`}>{identity.email}</a></p>
+  </footer>
+</Base>
+
+<style>
+  .skip {
+    position: absolute;
+    left: -9999px;
+    top: 0;
+    padding: 10px 16px;
+    background: var(--bg-card);
+    border: 1px solid var(--accent);
+    border-radius: 6px;
+    z-index: 10;
+  }
+  .skip:focus { left: 16px; top: 16px; }
+
+  .siteHead { border-bottom: 1px solid var(--line); position: relative; z-index: 1; }
+  .siteHead__inner {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 12px 28px;
+    padding-top: 20px;
+    padding-bottom: 20px;
+  }
+  .siteHead__name {
+    font-size: 14px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    margin-right: auto;
+  }
+  .siteHead__name:hover { color: var(--accent); }
+
+  .siteNav { display: flex; flex-wrap: wrap; gap: 4px; margin: -8px -10px; }
+  .siteNav a {
+    font-size: 13px;
+    letter-spacing: 0.04em;
+    color: var(--muted);
+    padding: 12px 10px;      /* 44px effective target on touch */
+    border-radius: 6px;
+    transition: color var(--t);
+  }
+  .siteNav a:hover { color: var(--text); }
+  .siteNav a[aria-current='page'] { color: var(--accent); }
+
+  .page { position: relative; z-index: 1; padding-top: 72px; padding-bottom: 96px; max-width: 720px; }
+  .page__title {
+    font-family: var(--mono);
+    font-size: clamp(30px, 5.5vw, 46px);
+    font-weight: 500;
+    letter-spacing: 0.02em;
+    line-height: 1.1;
+  }
+  .page__lede {
+    font-size: clamp(18px, 2.4vw, 21px);
+    line-height: 1.55;
+    color: var(--text);
+    margin: 22px 0 0;
+    max-width: 40ch;
+  }
+
+  .siteFoot {
+    position: relative;
+    z-index: 1;
+    border-top: 1px solid var(--line);
+    padding-top: 28px;
+    padding-bottom: 48px;
+    font-size: 12px;
+    letter-spacing: 0.04em;
+  }
+  .siteFoot p { margin: 0 0 8px; }
+  .siteFoot a { color: var(--muted); border-bottom: 1px solid var(--line-2); }
+  .siteFoot a:hover { color: var(--accent); border-color: var(--accent); }
+</style>

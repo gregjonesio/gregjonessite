@@ -9,6 +9,7 @@
 const KNOWN_EVENTS = new Set([
   'pv', 'enter', 'ask:question',
   'cmd:about', 'cmd:automation', 'cmd:capital', 'cmd:principles',
+  'cmd:building', 'cmd:writing', 'cmd:links',
   'cmd:status', 'cmd:contact', 'cmd:ask', 'cmd:help', 'cmd:ls',
   'cmd:menu', 'cmd:whoami', 'cmd:clear', 'cmd:exit',
 ]);

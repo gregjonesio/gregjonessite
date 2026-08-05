@@ -8,6 +8,12 @@ node_modules/
 # astro
 .astro/
 
+# wrangler local state / cache
+.wrangler/
+
+# impeccable design-review snapshots (local tooling output)
+.impeccable/
+
 # env
 .env
 .env.production

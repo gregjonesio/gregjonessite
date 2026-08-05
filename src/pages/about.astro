@@ -1,0 +1,75 @@
+---
+import Page from '../layouts/Page.astro';
+import { identity, sections, links } from '../data/content.js';
+import { hasPortrait, portraitPath } from '../lib/portrait.js';
+
+const s = sections.about;
+---
+
+<Page
+  title="About Greg Jones · Family Office Operator, SWS Venture Capital"
+  description={identity.summary}
+  heading="Greg Jones"
+  lede={s.meta}
+>
+  <div class="prose">
+    {hasPortrait && (
+      <img
+        class="portrait"
+        src={portraitPath}
+        alt={identity.imageAlt}
+        width="800"
+        height="800"
+        loading="eager"
+        decoding="async"
+      />
+    )}
+
+    {s.body.map((p) => <p>{p}</p>)}
+
+    <h2>Roles</h2>
+    <ul class="plain">
+      {identity.career.map((c) => <li>{c}</li>)}
+    </ul>
+
+    <h2>Education</h2>
+    <ul class="plain">
+      {identity.education.map((e) => (
+        <li><strong>{e.degree}</strong>, {e.school}</li>
+      ))}
+    </ul>
+
+    <h2>Elsewhere</h2>
+    <p class="meta">Everything on this site is checkable somewhere else.</p>
+    <ul class="plain">
+      {links.map((l) => (
+        <li>
+          <a href={l.href} rel="me noopener" target="_blank">{l.label}</a>
+          {l.note && <span class="meta"> · {l.note}</span>}
+        </li>
+      ))}
+    </ul>
+
+    <h2>Contact</h2>
+    {sections.contact.body.map((p) => <p>{p}</p>)}
+    <p>
+      <a href={sections.contact.cta.href} rel="noopener" target="_blank">{sections.contact.cta.label}</a>
+      <span class="meta"> · </span>
+      <a href={`mailto:${identity.email}`}>{identity.email}</a>
+    </p>
+  </div>
+</Page>
+
+<style>
+  /* The source is already a square crop framed on the face, so no
+     object-position adjustment is needed or wanted. */
+  .portrait {
+    width: 176px;
+    height: 176px;
+    max-width: 100%;
+    border-radius: 10px;
+    border: 1px solid var(--line-2);
+    display: block;
+    margin-bottom: 4px;
+  }
+</style>
