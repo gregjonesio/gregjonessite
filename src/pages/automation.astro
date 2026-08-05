@@ -58,10 +58,20 @@ const fmt = (v, f) =>
   (function () {
     var host = document.getElementById('metrics');
     if (!host || !source) return;
+    // Same contract as the terminal: only finite numbers replace a
+    // server-rendered value. Anything else leaves the reconciled figure in
+    // place rather than painting NaN over it.
+    // Same contract as the terminal. Numbers and numeric strings only:
+    // Number() alone coerces null, '', and [] to 0, which would publish a real
+    // figure as zero rather than leaving the server-rendered value alone.
     var f = function (v, fmt) {
-      if (fmt === 'pct') return Number(v).toFixed(2) + '%';
-      if (fmt === 'dec') return Number(v).toFixed(1);
-      return Math.round(v).toLocaleString('en-US');
+      var n = null;
+      if (typeof v === 'number' && isFinite(v)) n = v;
+      else if (typeof v === 'string' && v.trim() !== '' && isFinite(Number(v))) n = Number(v);
+      if (n === null) return null;
+      if (fmt === 'pct') return n.toFixed(2) + '%';
+      if (fmt === 'dec') return n.toFixed(1);
+      return Math.round(n).toLocaleString('en-US');
     };
     // AbortSignal.timeout is constructed while building the options object, so
     // on a browser without it this throws synchronously, before any promise
@@ -74,10 +84,10 @@ const fmt = (v, f) =>
       .then(function (r) { return r.ok ? r.json() : null; })
       .then(function (j) {
         var m = j && (j.metrics || j);
-        if (!m) return;
+        if (!m || typeof m !== 'object') return;
         host.querySelectorAll('[data-key]').forEach(function (el) {
-          var v = m[el.dataset.key];
-          if (v !== undefined && v !== null) el.textContent = f(v, el.dataset.format);
+          var out = f(m[el.dataset.key], el.dataset.format);
+          if (out !== null) el.textContent = out;
         });
       })
       .catch(function () { /* keep the reconciled values */ });

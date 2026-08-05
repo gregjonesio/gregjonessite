@@ -114,7 +114,10 @@ const graph = {
     <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large" />
 
     {schema && (
-      <script type="application/ld+json" set:html={JSON.stringify(graph)} />
+      // `<` is escaped so a value containing "</script>" could never terminate
+      // the element early. Every field is author-controlled today; this keeps
+      // that from becoming load-bearing.
+      <script type="application/ld+json" set:html={JSON.stringify(graph).replace(/</g, '\\u003c')} />
     )}
   </head>
   <body>

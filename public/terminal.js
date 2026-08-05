@@ -86,6 +86,7 @@ document.addEventListener('keydown', (e) => {
 function exitSystem() {
   entered = false;
   owner = {};              // disown anything still drawing
+  generation++;            // and drop anything queued behind this exit
   el.enter.setAttribute('aria-expanded', 'false');
   el.system.hidden = true;
   el.boot.hidden = false;
@@ -118,6 +119,7 @@ function exitSystem() {
  */
 let queue = Promise.resolve();
 let owner = {};
+let generation = 0;
 
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 
@@ -127,17 +129,45 @@ const wait = (ms) => new Promise((r) => setTimeout(r, ms));
  * no error to explain it. The watchdog both releases the queue and disowns the
  * stalled job, so if it does finish late its writes are discarded rather than
  * landing in the middle of someone else's output.
+ *
+ * Cancellation here is cooperative: a released job keeps running, and it is
+ * each continuation's job to re-check `live()` before drawing. Anything added
+ * to this file that touches the DOM after an await must do the same.
  */
 const JOB_TIMEOUT = 8000;
 
 function enqueue(job) {
+  // Captured at enqueue time, and only `exit` advances it. A command typed
+  // behind `exit` belongs to a session that has ended and must not run in the
+  // one that follows, or its output shows up above the next boot log.
+  //
+  // Deliberately NOT advanced by `clear`: clearing cancels writers already
+  // drawing, not commands the user typed afterwards. Conflating the two is
+  // what previously made a command typed just after `clear` vanish.
+  const gen = generation;
+
   queue = queue
     .then(() => {
+      if (gen !== generation) return;
+
       const token = (owner = {});
-      return Promise.race([
-        job(),
-        wait(JOB_TIMEOUT).then(() => { if (owner === token) owner = {}; }),
-      ]);
+      let timer;
+      const watchdog = new Promise((resolve) => {
+        timer = setTimeout(() => {
+          if (owner === token) owner = {};
+          console.warn('[terminal] job exceeded', JOB_TIMEOUT, 'ms; releasing the queue');
+          resolve();
+        }, JOB_TIMEOUT);
+      });
+
+      // Caught here rather than on the race, so a rejection arriving after the
+      // watchdog has already won is still reported instead of surfacing as an
+      // unhandled rejection with no context.
+      const running = Promise.resolve()
+        .then(job)
+        .catch((err) => { console.error('[terminal] job failed', err); });
+
+      return Promise.race([running, watchdog]).finally(() => clearTimeout(timer));
     })
     .catch((err) => { console.error('[terminal]', err); });
   return queue;
@@ -222,9 +252,13 @@ function run(raw) {
   const input = raw.trim();
   if (!input) return;
   return enqueue(async () => {
+    const mine = claim();
     echo(input);
     await dispatch(input);
-    announce();
+    // The announcement is a DOM write like any other, so it has to prove it
+    // still owns the screen. A job released by the watchdog used to be able to
+    // overwrite the live region while a newer command was on screen.
+    if (live(mine)) announce();
   });
 }
 
@@ -365,9 +399,44 @@ function printLinks() {
 
 /* ---------------- status dashboard ---------------- */
 function fmt(v, format) {
-  if (format === 'pct') return v.toFixed(2) + '%';
-  if (format === 'dec') return v.toFixed(1);
-  return Math.round(v).toLocaleString('en-US');
+  const n = Number(v);
+  if (!Number.isFinite(n)) return 'n/a';
+  if (format === 'pct') return n.toFixed(2) + '%';
+  if (format === 'dec') return n.toFixed(1);
+  return Math.round(n).toLocaleString('en-US');
+}
+
+/**
+ * The metrics feed is third party. Spreading its payload in unchecked meant a
+ * string, null, or a changed shape reached `.toFixed()` and threw in the middle
+ * of rendering, after the loading line had already been removed.
+ *
+ * Only finite numbers for keys we already know are accepted. Anything else
+ * keeps its reconciled baseline, so a bad response degrades to stale-but-
+ * correct rather than a half-drawn dashboard.
+ */
+function mergeMetrics(base, incoming) {
+  if (!incoming || typeof incoming !== 'object') return { values: base, applied: 0 };
+  const values = { ...base };
+  let applied = 0;
+  status.metrics.forEach((m) => {
+    const n = toMetric(incoming[m.key]);
+    if (n !== null) { values[m.key] = n; applied += 1; }
+  });
+  return { values, applied };
+}
+
+/**
+ * Numbers and numeric strings only. Deliberately not `Number(v)`: that coerces
+ * null, '', [], and false to 0, which would publish a real figure as zero.
+ */
+function toMetric(raw) {
+  if (typeof raw === 'number') return Number.isFinite(raw) ? raw : null;
+  if (typeof raw === 'string' && raw.trim() !== '') {
+    const n = Number(raw);
+    return Number.isFinite(n) ? n : null;
+  }
+  return null;
 }
 
 function renderMetricsHTML(values) {
@@ -407,7 +476,14 @@ async function printStatus() {
         // Bounded wait. Past this the reconciled values are shown instead.
         signal: AbortSignal.timeout(4000),
       });
-      if (r.ok) { const j = await r.json(); values = { ...values, ...(j.metrics || j) }; isLive = true; }
+      if (r.ok) {
+        const j = await r.json();
+        const merged = mergeMetrics(values, j && (j.metrics || j));
+        values = merged.values;
+        // Only claim the feed is live when every metric actually arrived as a
+        // number. A partial or malformed response shows the notice instead.
+        isLive = merged.applied === status.metrics.length;
+      }
     } catch (_) { /* fall through to the reconciled values */ }
   }
 
@@ -471,6 +547,11 @@ function renderSuggestions() {
  *
  * Returning 0 is a real answer. An honest handoff beats a confident miss.
  */
+/** One whole-word hit. Below this we have effectively matched nothing. */
+const MIN_MATCH_SCORE = 2;
+/** A winner must clear the runner-up by more than a single stray keyword. */
+const MATCH_MARGIN = 2;
+
 function scoreEntry(entry, text, words) {
   const present = (k) => (k.includes(' ') || k.includes('.')) ? text.includes(k) : words.includes(k);
   if (entry.requires && !entry.requires.some(present)) return 0;
@@ -504,13 +585,25 @@ async function runAsk(text) {
 
   // Match curated entries only, and take the best score rather than the first
   // entry that happens to contain a matching word.
+  //
+  // Punctuation is flattened first so a phrase trigger still matches across
+  // "background?" or "background,". Periods survive for keys like "a.i".
+  const norm = t.replace(/[^a-z0-9.]+/g, ' ').replace(/\s+/g, ' ').trim();
   const words = t.split(/[^a-z0-9]+/).filter(Boolean);
   let best = null;
   let bestScore = 0;
+  let runnerUp = 0;
   askGreg.qa.forEach((e) => {
-    const s = scoreEntry(e, t, words);
-    if (s > bestScore) { bestScore = s; best = e; }
+    const s = scoreEntry(e, norm, words);
+    if (s > bestScore) { runnerUp = bestScore; bestScore = s; best = e; }
+    else if (s > runnerUp) { runnerUp = s; }
   });
+
+  // Two guards against a confident miss, which is the failure this matcher
+  // exists to prevent. A lone keyword is not enough on its own, and a result
+  // that barely edges out another entry means we are guessing between them.
+  // Handing off is always a safe answer; a wrong one is not.
+  if (bestScore < MIN_MATCH_SCORE || bestScore - runnerUp < MATCH_MARGIN) best = null;
 
   const answer = best ? best.a : askGreg.fallback;
   const items = answer.map((a) => [esc(a), 'ln--body']);
