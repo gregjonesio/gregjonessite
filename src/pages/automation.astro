@@ -1,0 +1,107 @@
+---
+import Page from '../layouts/Page.astro';
+import { sections, status, links } from '../data/content.js';
+
+const s = sections.automation;
+const repo = links.find((l) => l.label === 'GitHub');
+const dashboard = links.find((l) => l.label === 'Dashboard');
+
+/**
+ * Rendered from the last reconciled values so the numbers are in the HTML for
+ * anything that does not run scripts. The inline script below refreshes them
+ * from the live feed for anyone who does.
+ */
+const fmt = (v, f) =>
+  f === 'pct' ? `${v.toFixed(2)}%` : f === 'dec' ? v.toFixed(1) : Math.round(v).toLocaleString('en-US');
+---
+
+<Page
+  title="How the operation runs · Greg Jones"
+  description="A single family office run as an AI-native operating system: scheduled agents that prepare work, heartbeats that make silence observable, and a written list of what each one is not allowed to do."
+  heading="Automation"
+  lede="Automation is not a feature of the operation. It is the operation."
+>
+  <div class="prose">
+    {s.body.slice(1).map((p) => <p>{p}</p>)}
+
+    <h2>Operating posture</h2>
+    <blockquote>
+      {s.lines.map((l) => <p>{l}</p>)}
+    </blockquote>
+
+    <h2>Current state</h2>
+    <p class="meta">
+      Directional operating figures, not audited results. Live values at
+      <a href={dashboard.href} rel="noopener" target="_blank">dashboard.gregjones.io</a>.
+    </p>
+    <div class="metrics" id="metrics">
+      {status.metrics.map((m) => (
+        <div class="metric">
+          <div class="metric__label">{m.label}</div>
+          <div class="metric__val" data-key={m.key} data-format={m.format}>{fmt(m.base, m.format)}</div>
+        </div>
+      ))}
+    </div>
+
+    <h2>The specification layer</h2>
+    <p>
+      The patterns behind this are published rather than described. The skills, blueprints, and
+      governance docs are public at
+      <a href={repo.href} rel="noopener" target="_blank">github.com/gregjonesio/family-office-ai-skills</a>.
+    </p>
+  </div>
+</Page>
+
+<script is:inline define:vars={{ source: status.source }}>
+  // Progressive enhancement only. The server-rendered values above are already
+  // correct as of the last reconciliation; this just makes them current.
+  (function () {
+    var host = document.getElementById('metrics');
+    if (!host || !source) return;
+    var f = function (v, fmt) {
+      if (fmt === 'pct') return Number(v).toFixed(2) + '%';
+      if (fmt === 'dec') return Number(v).toFixed(1);
+      return Math.round(v).toLocaleString('en-US');
+    };
+    fetch(source, { headers: { accept: 'application/json' }, signal: AbortSignal.timeout(4000) })
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (j) {
+        var m = j && (j.metrics || j);
+        if (!m) return;
+        host.querySelectorAll('[data-key]').forEach(function (el) {
+          var v = m[el.dataset.key];
+          if (v !== undefined && v !== null) el.textContent = f(v, el.dataset.format);
+        });
+      })
+      .catch(function () { /* keep the reconciled values */ });
+  })();
+</script>
+
+<style>
+  .metrics {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+    gap: 10px;
+    margin-top: 18px;
+  }
+  .metric {
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 16px 18px;
+    background: var(--wash);
+  }
+  .metric__label {
+    color: var(--muted);
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+  .metric__val {
+    font-family: var(--mono);
+    color: var(--accent);
+    font-size: 28px;
+    margin-top: 8px;
+    font-variant-numeric: tabular-nums;
+  }
+</style>

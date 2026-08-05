@@ -1,18 +1,81 @@
 ---
 import '../styles/global.css';
+import { identity, links } from '../data/content.js';
+import { hasPortrait } from '../lib/portrait.js';
 
 interface Props {
   title?: string;
   description?: string;
+  /** Omit the JSON-LD Person node on pages where it would be redundant. */
+  schema?: boolean;
 }
 
 const {
-  title = 'Greg Jones — Building systems that compound.',
-  description = 'Greg Jones operates at the intersection of capital allocation, automation, and long-horizon systems design. Family Office. Venture Capital. Automation.',
+  title = 'Greg Jones · Building systems that compound.',
+  description = identity.summary,
+  schema = true,
 } = Astro.props;
 
-const canonical = new URL(Astro.url.pathname, Astro.site ?? 'https://gregjones.io').toString();
-const ogImage = new URL('/og.png', Astro.site ?? 'https://gregjones.io').toString();
+const site = Astro.site ?? 'https://gregjones.io';
+const canonical = new URL(Astro.url.pathname, site).toString();
+const ogImage = new URL('/og.png', site).toString();
+
+/**
+ * Person schema.
+ *
+ * `sameAs` is the load-bearing field. "Greg Jones" is a common name, and this
+ * array is what tells a search engine or an answer engine that the person on
+ * this page is the same person on LinkedIn, GitHub, Substack, Crunchbase, and
+ * the firm bio. Without it the site is a string; with it, it is an entity.
+ */
+const person = {
+  '@type': 'Person',
+  '@id': `${site}#person`,
+  name: identity.displayName,
+  url: site.toString(),
+  description: identity.summary,
+  jobTitle: identity.jobTitle,
+  email: `mailto:${identity.email}`,
+  worksFor: {
+    '@type': 'Organization',
+    name: identity.worksFor,
+    url: 'https://www.swsventurecap.com',
+  },
+  alumniOf: identity.education.map((e) => ({ '@type': 'EducationalOrganization', name: e.school })),
+  knowsAbout: [
+    'Family office operations',
+    'Operating systems for small organizations',
+    'AI governance and controls',
+    'Workflow automation',
+    'Capital allocation',
+    'Venture capital',
+  ],
+  sameAs: links.filter((l) => l.sameAs).map((l) => l.href),
+  // `image` is omitted rather than pointed at a file that does not exist.
+  ...(hasPortrait ? { image: new URL(identity.image, site).toString() } : {}),
+};
+
+const graph = {
+  '@context': 'https://schema.org',
+  '@graph': [
+    person,
+    {
+      '@type': 'WebSite',
+      '@id': `${site}#website`,
+      url: site.toString(),
+      name: 'gregjones.io',
+      publisher: { '@id': `${site}#person` },
+    },
+    {
+      '@type': 'WebPage',
+      url: canonical,
+      name: title,
+      description,
+      isPartOf: { '@id': `${site}#website` },
+      about: { '@id': `${site}#person` },
+    },
+  ],
+};
 ---
 
 <!doctype html>
@@ -24,8 +87,14 @@ const ogImage = new URL('/og.png', Astro.site ?? 'https://gregjones.io').toStrin
     <meta name="description" content={description} />
     <meta name="theme-color" content="#0A0A0A" />
     <meta name="color-scheme" content="dark" />
+    <meta name="author" content={identity.displayName} />
     <link rel="canonical" href={canonical} />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+
+    <!-- Self-hosted, so preload rather than wait for the CSS to discover them.
+         Both weights are used above the fold on every page. -->
+    <link rel="preload" href="/fonts/ibm-plex-mono-400.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href="/fonts/ibm-plex-mono-500.woff2" as="font" type="font/woff2" crossorigin />
 
     <!-- Open Graph -->
     <meta property="og:type" content="website" />
@@ -36,13 +105,17 @@ const ogImage = new URL('/og.png', Astro.site ?? 'https://gregjones.io').toStrin
     <meta property="og:image" content={ogImage} />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
-    <meta property="og:image:alt" content="Greg Jones — Building systems that compound. Family Office · Venture Capital · Automation." />
+    <meta property="og:image:alt" content="Greg Jones · Building systems that compound. Family Office · Venture Capital · Automation." />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content={title} />
     <meta name="twitter:description" content={description} />
     <meta name="twitter:image" content={ogImage} />
 
-    <meta name="robots" content="index, follow" />
+    <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large" />
+
+    {schema && (
+      <script type="application/ld+json" set:html={JSON.stringify(graph)} />
+    )}
   </head>
   <body>
     <slot />

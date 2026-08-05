@@ -1,27 +1,30 @@
 ---
 import Base from '../layouts/Base.astro';
-import { identity, commands, sections, status, askGreg } from '../data/content.js';
+import { identity, commands, sections, status, askGreg, essays, links, nav } from '../data/content.js';
 
 // Serialize the data layer once so the client terminal and the static
 // (SEO / no-JS) content share a single source of truth.
-const siteData = { identity, commands, sections, status, askGreg };
+const siteData = { identity, commands, sections, status, askGreg, essays, links };
 ---
 
 <Base>
   <!-- ============ BOOT / COMMAND INTERFACE ============ -->
   <section id="boot" class="boot" aria-label="Entry">
     <div class="shell boot__inner">
-      <p class="boot__sys mono muted">[ gregjones.io · secure session established ]</p>
+      <p class="boot__sys mono muted">{identity.bootLine}</p>
       <h1 class="boot__name mono">{identity.name}</h1>
       <p class="boot__tag">{identity.tagline}</p>
       <p class="boot__pillars mono muted">
         {identity.pillars.join('  ·  ')}
       </p>
       <p class="boot__prompt mono">
-        <span class="faint">greg@system</span><span class="muted">:</span><span class="accent">~</span><span class="muted">$</span>
+        <span class="dim">greg@system</span><span class="muted">:</span><span class="accent">~</span><span class="muted">$</span>
         <span class="boot__typed" id="bootTyped"></span><span class="cursor" aria-hidden="true"></span>
       </p>
-      <button class="btn boot__enter" id="enterBtn" aria-controls="system">Enter System →</button>
+      <p class="boot__actions">
+        <button class="btn boot__enter" id="enterBtn" aria-controls="system" aria-expanded="false">Enter System →</button>
+        <a class="boot__read mono" href="#read">or read the short version ↓</a>
+      </p>
     </div>
   </section>
 
@@ -31,7 +34,7 @@ const siteData = { identity, commands, sections, status, askGreg };
       <div class="term" role="region" aria-label="Command terminal">
         <header class="term__bar">
           <span class="term__dots" aria-hidden="true"><i></i><i></i><i></i></span>
-          <span class="term__title mono muted">greg@gregjones.io — system</span>
+          <span class="term__title mono muted">greg@gregjones.io · system</span>
           <span class="term__live mono"><span class="dot" aria-hidden="true"></span>OPERATIONAL</span>
         </header>
 
@@ -41,37 +44,67 @@ const siteData = { identity, commands, sections, status, askGreg };
           ))}
         </nav>
 
-        <div class="term__out" id="output" tabindex="0" aria-live="polite"></div>
+        <!-- Not a live region: it receives one staggered line at a time, which
+             a screen reader announces as fragments. The announcer below gets
+             the whole block once, after it finishes rendering. -->
+        <div class="term__out" id="output" tabindex="0" role="log"></div>
+        <div id="announcer" class="sr-only" aria-live="polite" aria-atomic="true"></div>
 
         <form class="term__input" id="inputForm" autocomplete="off">
           <label for="cmd" class="mono prompt-label">
-            <span class="faint" id="promptUser">greg@system</span><span class="muted">:</span><span class="accent">~</span><span class="muted">$</span>
+            <span class="dim" id="promptUser">greg@system</span><span class="muted">:</span><span class="accent">~</span><span class="muted">$</span>
           </label>
-          <input id="cmd" name="cmd" class="mono" type="text" spellcheck="false"
+          <input id="cmd" name="cmd" class="mono" type="text" spellcheck="false" maxlength="240"
                  autocapitalize="off" placeholder="type a command, or `help`" aria-label="Command input" />
         </form>
       </div>
-      <footer class="term__foot mono faint">
+      <footer class="term__foot mono dim">
         <span>© {new Date().getFullYear()} Greg Jones</span>
         <span>type <span class="muted">help</span> · <span class="muted">clear</span> · <span class="muted">exit</span></span>
       </footer>
     </div>
   </main>
 
-  <!-- ============ STATIC FALLBACK (no-JS / SEO) ============ -->
-  <noscript>
-    <div class="shell" style="padding:64px 24px;">
-      <h2 class="mono accent">{sections.about.title}</h2>
-      {sections.about.body.map((p) => <p>{p}</p>)}
-      <h2 class="mono accent">{sections.capital.title}</h2>
-      {sections.capital.body.map((p) => <p>{p}</p>)}
-      <h2 class="mono accent">{sections.principles.title}</h2>
-      <ul>{sections.principles.items.map((i) => <li>{i}</li>)}</ul>
-      <h2 class="mono accent">{sections.contact.title}</h2>
-      {sections.contact.body.map((p) => <p>{p}</p>)}
-      <p><a href={`mailto:${identity.email}`}>{identity.email}</a></p>
+  <!-- ============ READ VIEW ============
+       Rendered normally, not inside <noscript>. Humans who do not want to
+       drive a terminal and machines that do not run scripts see the same
+       thing. The terminal hides this when it takes over. -->
+  <main id="read" class="read" aria-label="Overview">
+    <div class="shell">
+      <div class="prose">
+        {identity.bio.map((p) => <p>{p}</p>)}
+
+        <h2>Operating principles</h2>
+        <ul>{sections.principles.items.map((i) => <li>{i}</li>)}</ul>
+
+        <h2>Capital</h2>
+        {sections.capital.body.map((p) => <p>{p}</p>)}
+
+        <h2>More</h2>
+        <ul class="plain">
+          {nav.map((n) => <li><a href={n.href}>{n.label}</a></li>)}
+        </ul>
+
+        <h2>Elsewhere</h2>
+        <ul class="plain">
+          {links.map((l) => (
+            <li>
+              <a href={l.href} rel="me noopener" target="_blank">{l.label}</a>
+              {l.note && <span class="meta"> · {l.note}</span>}
+            </li>
+          ))}
+        </ul>
+
+        <h2>Contact</h2>
+        {sections.contact.body.map((p) => <p>{p}</p>)}
+        <p>
+          <a href={sections.contact.cta.href} rel="noopener" target="_blank">{sections.contact.cta.label}</a>
+          <span class="meta"> · </span>
+          <a href={`mailto:${identity.email}`}>{identity.email}</a>
+        </p>
+      </div>
     </div>
-  </noscript>
+  </main>
 
   <script type="application/json" id="site-data" set:html={JSON.stringify(siteData)}></script>
   <script src="/terminal.js" type="module"></script>
@@ -107,7 +140,23 @@ const siteData = { identity, commands, sections, status, askGreg };
   .boot__pillars { font-size: 13px; letter-spacing: 0.16em; text-transform: uppercase; margin: 16px 0 0; opacity: 0; animation: fade 700ms 520ms ease forwards; }
   .boot__prompt { font-size: 14px; margin: 40px 0 0; opacity: 0; animation: fade 700ms 680ms ease forwards; }
   .boot__typed { color: var(--accent); }
-  .boot__enter { margin-top: 36px; opacity: 0; animation: fade 700ms 900ms ease forwards; }
+  .boot__actions {
+    display: flex; align-items: center; flex-wrap: wrap; gap: 12px 24px;
+    margin: 36px 0 0;
+    opacity: 0; animation: fade 700ms 900ms ease forwards;
+  }
+  /* The escape hatch. A visitor who does not want to drive a terminal has a
+     way through without the gate, which is also the path a crawler follows. */
+  .boot__read {
+    font-size: 13px; letter-spacing: 0.04em; color: var(--muted);
+    padding: 12px 4px;                       /* 44px effective target */
+    transition: color var(--t);
+  }
+  .boot__read:hover { color: var(--accent); }
+
+  /* ---------- read view ---------- */
+  .read { position: relative; z-index: 1; display: block; padding: 8vh 0 14vh; scroll-margin-top: 0; }
+  .read .prose { margin-top: 0; }
 
   /* ---------- system ---------- */
   .system { min-height: 100svh; padding: 6vh 0 4vh; animation: fade 500ms ease both; }
@@ -115,14 +164,14 @@ const siteData = { identity, commands, sections, status, askGreg };
     background: linear-gradient(180deg, var(--bg-raise), var(--bg-card));
     border: 1px solid var(--line);
     border-radius: var(--r);
-    box-shadow: 0 30px 80px -40px rgba(0,0,0,0.9), inset 0 1px 0 rgba(255,255,255,0.03);
+    box-shadow: 0 30px 80px -40px var(--shadow), inset 0 1px 0 var(--hairline);
     overflow: hidden;
   }
   .term__bar {
     display: flex; align-items: center; gap: 14px;
     padding: 12px 16px;
     border-bottom: 1px solid var(--line);
-    background: rgba(255,255,255,0.015);
+    background: var(--wash-2);
   }
   .term__dots { display: inline-flex; gap: 7px; }
   .term__dots i { width: 10px; height: 10px; border-radius: 50%; background: var(--faint); opacity: 0.5; }
@@ -139,12 +188,22 @@ const siteData = { identity, commands, sections, status, askGreg };
     transition: color var(--t), border-color var(--t), background var(--t);
   }
   .chip:hover { color: var(--accent); border-color: var(--accent); background: var(--accent-dim); }
+  /* The compact chip is a pointer affordance. On touch it has to clear 44px,
+     so the padding grows rather than the type. */
+  @media (pointer: coarse) {
+    .chip { padding: 13px 16px; }
+    .term__menu { gap: 10px; }
+  }
 
   .term__out {
     font-family: var(--mono);
     font-size: 14px; line-height: 1.75;
     padding: 22px 18px;
     height: min(56vh, 560px);
+    /* A pasted 300-character token used to push the box 2000px wide.
+       Unbroken input now wraps instead of scrolling sideways. */
+    overflow-wrap: anywhere;
+    word-break: break-word;
     overflow-y: auto;
     scrollbar-width: thin;
     scrollbar-color: var(--line-2) transparent;
@@ -154,11 +213,23 @@ const siteData = { identity, commands, sections, status, askGreg };
 
   .term__input { display: flex; align-items: center; gap: 10px; padding: 14px 18px; border-top: 1px solid var(--line); }
   .prompt-label { font-size: 14px; white-space: nowrap; }
-  #cmd { flex: 1; background: transparent; border: 0; color: var(--text); font-size: 14px; padding: 4px 0; }
-  #cmd::placeholder { color: var(--faint); }
+  /* 16px is not a style choice: iOS Safari force-zooms the viewport on focus
+     for anything smaller, and this is the primary control of the interface. */
+  #cmd {
+    flex: 1; min-width: 0;
+    background: transparent; border: 0;
+    color: var(--text);
+    font-size: 16px;
+    padding: 10px 0;
+  }
+  #cmd::placeholder { color: var(--dim); }
+  /* `#cmd:focus { outline: none }` used to out-specify the global
+     :focus-visible rule, leaving the main control with no focus indicator at
+     all. The ring is scoped to the row so it reads as one field. */
+  .term__input:focus-within { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 6px; }
   #cmd:focus { outline: none; }
 
-  .term__foot { display: flex; justify-content: space-between; font-size: 11px; padding: 14px 4px 0; letter-spacing: 0.04em; }
+  .term__foot { display: flex; justify-content: space-between; gap: 12px; font-size: 12px; padding: 16px 4px 0; letter-spacing: 0.04em; }
 
   /* ---------- output line primitives (used by terminal.js) ---------- */
   :global(.ln) { opacity: 0; transform: translateY(3px); animation: rise 360ms ease forwards; }
@@ -173,12 +244,12 @@ const siteData = { identity, commands, sections, status, askGreg };
   :global(.ln--gap) { height: 10px; }
   :global(.ln a) { color: var(--accent); border-bottom: 1px solid var(--accent-dim); }
   :global(.ln a:hover) { border-color: var(--accent); }
-  :global(.sg) { color: var(--muted); cursor: pointer; border: 1px dashed var(--line-2); border-radius: 6px; padding: 3px 9px; margin: 3px 6px 3px 0; display: inline-block; transition: color var(--t), border-color var(--t); }
+  :global(.sg) { font: inherit; color: var(--muted); background: transparent; cursor: pointer; border: 1px dashed var(--line-2); border-radius: 6px; padding: 3px 9px; margin: 3px 6px 3px 0; display: inline-block; text-align: left; transition: color var(--t), border-color var(--t); }
   :global(.sg:hover) { color: var(--accent); border-color: var(--accent); }
 
   /* ---------- status dashboard ---------- */
   :global(.grid) { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; margin: 12px 0 4px; }
-  :global(.metric) { border: 1px solid var(--line); border-radius: 8px; padding: 14px 16px; background: rgba(255,255,255,0.012); }
+  :global(.metric) { border: 1px solid var(--line); border-radius: 8px; padding: 14px 16px; background: var(--wash); }
   :global(.metric__label) { color: var(--muted); font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; }
   :global(.metric__val) { color: var(--text); font-size: 26px; margin-top: 6px; font-variant-numeric: tabular-nums; }
   :global(.metric__val b) { color: var(--accent); font-weight: 500; }
@@ -190,7 +261,9 @@ const siteData = { identity, commands, sections, status, askGreg };
   @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.35; } }
 
   @media (max-width: 560px) {
-    .term__out { height: 60vh; font-size: 13px; }
+    /* dvh, not vh: vh does not shrink when the on-screen keyboard opens, so a
+       fixed 60vh well pushed the prompt the user just tapped off screen. */
+    .term__out { height: 60dvh; font-size: 13px; }
     .term__title { display: none; }
   }
 </style>

@@ -1,0 +1,37 @@
+---
+import Page from '../layouts/Page.astro';
+import { sections, identity } from '../data/content.js';
+
+const s = sections.building;
+---
+
+<Page
+  title="TailYield · Greg Jones"
+  description="TailYield tells a private aircraft owner what a specific charter trip is actually worth to them, before they say yes."
+  heading="Building"
+  lede="TailYield."
+>
+  <div class="prose">
+    {s.body.map((p) => <p>{p}</p>)}
+
+    <p>
+      <a href={s.cta.href} rel="noopener" target="_blank">{s.cta.label}</a>
+    </p>
+
+    <h2>Why it exists</h2>
+    <p>
+      Charter decisions get made on a quoted revenue figure. That figure is the operator's side of
+      the trade. It says nothing about what the flight costs the owner in maintenance exposure,
+      positioning, and schedule, which is the only side the owner actually pays for.
+    </p>
+    <p>
+      The same division of labor applies here as everywhere else in the operation. The system
+      assembles the numbers and shows its work. The owner decides.
+    </p>
+
+    <h2>Contact</h2>
+    <p>
+      Questions about TailYield, or anything else: <a href={`mailto:${identity.email}`}>{identity.email}</a>.
+    </p>
+  </div>
+</Page>
