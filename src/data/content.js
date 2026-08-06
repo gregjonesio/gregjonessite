@@ -88,6 +88,7 @@ export const links = [
   { label: 'TailYield', href: 'https://tailyield.ai', note: 'Charter economics for aircraft owners', sameAs: true },
   { label: 'SWS Venture Capital', href: 'https://www.swsventurecap.com/greg-jones', note: 'Firm bio', sameAs: true },
   { label: 'Crunchbase', href: 'https://www.crunchbase.com/person/greg-jones-266e', note: null, sameAs: true },
+  { label: 'Bloomberg', href: 'https://www.bloomberg.com/profiles/people/22196803-greg-jones', note: null, sameAs: true },
 ];
 
 /**
