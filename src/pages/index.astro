@@ -83,6 +83,12 @@ const siteData = { identity, commands, sections, status, askGreg, essays, links 
       <div class="prose">
         {/* The face belongs on the page a stranger actually lands on, not only
             on /about/ where it was easy to miss entirely. */}
+        {/* Eager, not lazy. It sits below the boot screen so lazy is the
+            textbook choice, but it is 73KB, cached for a week, and the single
+            most load-bearing credibility element on the page. fetchpriority
+            low keeps it from competing with the fonts and CSS, which gets the
+            bandwidth saving that mattered without depending on intersection
+            timing to render at all. */}
         {hasPortrait && (
           <img
             class="readPortrait"
@@ -90,7 +96,8 @@ const siteData = { identity, commands, sections, status, askGreg, essays, links 
             alt={identity.imageAlt}
             width="800"
             height="800"
-            loading="lazy"
+            loading="eager"
+            fetchpriority="low"
             decoding="async"
           />
         )}
