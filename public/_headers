@@ -11,6 +11,35 @@
 /_astro/*
   Cache-Control: public, max-age=31536000, immutable
 
+# Prerendered endpoints are written to disk as static files, so the asset layer
+# types them by extension and discards the Content-Type the route returned.
+# rss.xml would otherwise serve as application/xml.
+/rss.xml
+  Content-Type: application/rss+xml; charset=utf-8
+  Cache-Control: public, max-age=3600
+
+/sitemap.xml
+  Content-Type: application/xml; charset=utf-8
+  Cache-Control: public, max-age=3600
+
+/llms.txt
+  Content-Type: text/plain; charset=utf-8
+  Cache-Control: public, max-age=3600
+
+# Self-hosted and referenced by stable filename, so a long cache with
+# revalidation rather than immutable: swapping the typeface must not require
+# a year of stale cache to age out.
+/fonts/*
+  Cache-Control: public, max-age=2592000
+
+# Fetched only by social crawlers when a link is shared, never on page view.
+/og/*
+  Cache-Control: public, max-age=604800
+/og.png
+  Cache-Control: public, max-age=604800
+/greg-jones.jpg
+  Cache-Control: public, max-age=604800
+
 # Tesla Fleet API third-party public key (served for vehicle virtual-key pairing).
 # Public key only — safe to expose. Short cache to ease migration testing.
 /.well-known/appspecific/com.tesla.3p.public-key.pem
