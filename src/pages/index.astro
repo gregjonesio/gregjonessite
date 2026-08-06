@@ -1,6 +1,7 @@
 ---
 import Base from '../layouts/Base.astro';
 import { identity, commands, sections, status, askGreg, essays, links, nav } from '../data/content.js';
+import { hasPortrait, portraitPath } from '../lib/portrait.js';
 
 // Serialize the data layer once so the client terminal and the static
 // (SEO / no-JS) content share a single source of truth.
@@ -80,6 +81,19 @@ const siteData = { identity, commands, sections, status, askGreg, essays, links 
   <section id="read" class="read" aria-label="Overview">
     <div class="shell">
       <div class="prose">
+        {/* The face belongs on the page a stranger actually lands on, not only
+            on /about/ where it was easy to miss entirely. */}
+        {hasPortrait && (
+          <img
+            class="readPortrait"
+            src={portraitPath}
+            alt={identity.imageAlt}
+            width="800"
+            height="800"
+            loading="lazy"
+            decoding="async"
+          />
+        )}
         {identity.bio.map((p) => <p>{p}</p>)}
 
         <h2>Operating principles</h2>
@@ -166,6 +180,16 @@ const siteData = { identity, commands, sections, status, askGreg, essays, links 
   /* ---------- read view ---------- */
   .read { position: relative; z-index: 1; display: block; padding: 8vh 0 14vh; scroll-margin-top: 0; }
   .read .prose { margin-top: 0; }
+  /* Lazy, because it sits below the fold under the boot screen. */
+  .readPortrait {
+    width: 132px;
+    height: 132px;
+    max-width: 100%;
+    border-radius: 10px;
+    border: 1px solid var(--line-2);
+    display: block;
+    margin: 0 0 26px;
+  }
 
   /* ---------- system ---------- */
   .system { min-height: 100svh; padding: 6vh 0 4vh; animation: fade 500ms ease both; }
