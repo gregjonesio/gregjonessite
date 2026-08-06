@@ -15,9 +15,10 @@ interface Props {
   description?: string;
   heading: string;
   lede?: string;
+  ogImage?: string;
 }
 
-const { title, description, heading, lede } = Astro.props;
+const { title, description, heading, lede, ogImage } = Astro.props;
 
 /** Compare routes ignoring the trailing slash, so the active-page marker holds
     whichever form a link or the current URL happens to use. */
@@ -25,7 +26,7 @@ const norm = (p) => p.replace(/\/+$/, '') || '/';
 const path = norm(Astro.url.pathname);
 ---
 
-<Base title={title} description={description}>
+<Base title={title} description={description} ogImage={ogImage}>
   <a class="skip" href="#main">Skip to content</a>
 
   <header class="siteHead">
