@@ -98,12 +98,19 @@ export const links = [
  * remembering to announce it; now adding it here does both. Order is render
  * order for the nav.
  */
+/**
+ * Trailing slashes are load-bearing. Astro builds these as directories, so the
+ * deployed page lives at /about/ and its canonical says /about/. Listing them
+ * here without the slash made every sitemap URL and every nav link resolve
+ * through a 307 redirect, and put the sitemap at odds with the canonical it
+ * points at. Keep the slash.
+ */
 export const routes = [
-  { path: '/',           label: 'Home',       inNav: false, changefreq: 'monthly', priority: '1.0' },
-  { path: '/about',      label: 'About',      inNav: true,  changefreq: 'monthly', priority: '0.9' },
-  { path: '/automation', label: 'Automation', inNav: true,  changefreq: 'weekly',  priority: '0.8' },
-  { path: '/building',   label: 'Building',   inNav: true,  changefreq: 'monthly', priority: '0.7' },
-  { path: '/writing',    label: 'Writing',    inNav: true,  changefreq: 'weekly',  priority: '0.8' },
+  { path: '/',            label: 'Home',       inNav: false, changefreq: 'monthly', priority: '1.0' },
+  { path: '/about/',      label: 'About',      inNav: true,  changefreq: 'monthly', priority: '0.9' },
+  { path: '/automation/', label: 'Automation', inNav: true,  changefreq: 'weekly',  priority: '0.8' },
+  { path: '/building/',   label: 'Building',   inNav: true,  changefreq: 'monthly', priority: '0.7' },
+  { path: '/writing/',    label: 'Writing',    inNav: true,  changefreq: 'weekly',  priority: '0.8' },
 ];
 
 /** Primary navigation. Derived, so it can never drift from the sitemap. */
