@@ -5,11 +5,48 @@ import { sections, essays } from '../data/content.js';
 const s = sections.writing;
 const fmtDate = (iso) =>
   new Date(`${iso}T12:00:00Z`).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' });
+
+const SITE = 'https://gregjones.io';
+
+/**
+ * The essays are hosted on Substack, so this page is modelled honestly as a
+ * list that points at them rather than as the articles themselves: each item
+ * carries the canonical Substack URL and credits the same Person node the rest
+ * of the site uses. That is what lets an answer engine connect "who wrote this"
+ * to the entity, instead of treating each essay as an orphan.
+ */
+const essayGraph = {
+  '@context': 'https://schema.org',
+  '@type': 'CollectionPage',
+  '@id': `${SITE}/writing/#page`,
+  name: 'Writing by Greg Jones',
+  about: { '@id': `${SITE}#person` },
+  mainEntity: {
+    '@type': 'ItemList',
+    itemListOrder: 'https://schema.org/ItemListOrderDescending',
+    numberOfItems: essays.length,
+    itemListElement: essays.map((e, i) => ({
+      '@type': 'ListItem',
+      position: i + 1,
+      item: {
+        '@type': 'Article',
+        headline: e.title,
+        url: e.href,
+        datePublished: e.date,
+        abstract: e.summary,
+        author: { '@id': `${SITE}#person` },
+        publisher: { '@id': `${SITE}#person` },
+        isAccessibleForFree: true,
+      },
+    })),
+  },
+};
 ---
 
 <Page
   title="Writing · Greg Jones"
   description="Essays on how small, high-trust organizations achieve institutional excellence: the discipline and leverage of an institution without the headcount, bureaucracy, or pace."
+  ogImage="/og/writing.png"
   heading="Writing"
   lede={s.body[0]}
 >
@@ -33,6 +70,8 @@ const fmtDate = (iso) =>
     <p>New essays weekly. No cadence promises beyond that, and nothing sent that is not finished.</p>
     <p><a href={s.cta.href} rel="noopener" target="_blank">{s.cta.label}</a></p>
   </div>
+
+  <script type="application/ld+json" set:html={JSON.stringify(essayGraph).replace(/</g, '\\u003c')} />
 </Page>
 
 <style>

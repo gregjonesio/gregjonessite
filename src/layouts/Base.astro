@@ -6,6 +6,8 @@ import { hasPortrait } from '../lib/portrait.js';
 interface Props {
   title?: string;
   description?: string;
+  /** Per-page share card. Generated from the site's own type and palette. */
+  ogImage?: string;
   /** Omit the JSON-LD Person node on pages where it would be redundant. */
   schema?: boolean;
 }
@@ -13,12 +15,13 @@ interface Props {
 const {
   title = 'Greg Jones · Building systems that compound.',
   description = identity.summary,
+  ogImage: ogImagePath = '/og/home.png',
   schema = true,
 } = Astro.props;
 
 const site = Astro.site ?? 'https://gregjones.io';
 const canonical = new URL(Astro.url.pathname, site).toString();
-const ogImage = new URL('/og.png', site).toString();
+const ogImage = new URL(ogImagePath, site).toString();
 
 /**
  * Person schema.
@@ -90,6 +93,7 @@ const graph = {
     <meta name="author" content={identity.displayName} />
     <link rel="canonical" href={canonical} />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="alternate" type="application/rss+xml" title="Greg Jones" href="/rss.xml" />
 
     <!-- Self-hosted, so preload rather than wait for the CSS to discover them.
          Both weights are used above the fold on every page. -->
@@ -105,7 +109,7 @@ const graph = {
     <meta property="og:image" content={ogImage} />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
-    <meta property="og:image:alt" content="Greg Jones · Building systems that compound. Family Office · Venture Capital · Automation." />
+    <meta property="og:image:alt" content={`${title}. Family Office · Venture Capital · Automation.`} />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content={title} />
     <meta name="twitter:description" content={description} />
