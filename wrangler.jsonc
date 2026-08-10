@@ -11,6 +11,16 @@
   "assets": {
     "directory": "./dist",
     "binding": "ASSETS",
+    // Astro builds pages as directories, so /about/ is the canonical URL and
+    // the one the sitemap, the nav and the page's own <link rel=canonical>
+    // all use. Pinning the policy keeps it from being inferred: under the
+    // default ("auto-trailing-slash") the direction of the redirect depends
+    // on whether a route happens to emit foo/index.html or foo.html, so a
+    // single page built the other way would start redirecting the opposite
+    // way and split the canonical form across the site.
+    // dist/_redirects (generated at build time) upgrades the 307 this issues
+    // to a 301 for known routes; this is the backstop for everything else.
+    "html_handling": "force-trailing-slash",
     // /api/* must always reach the Worker (POST beacons were otherwise
     // answered by the asset layer with a 404).
     "run_worker_first": ["/api/*"]

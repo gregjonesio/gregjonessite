@@ -38,6 +38,12 @@ jobs:
       - name: Build
         run: npm run build
 
+      # Catches the site linking to its own redirects — canonical, sitemap and
+      # nav disagreeing about the trailing slash is what put pages into Search
+      # Console's "Page with redirect" bucket, and it was invisible in review.
+      - name: URL / canonical check
+        run: npm run verify
+
       - name: Dependency audit
         run: npm audit --omit=dev || true
 

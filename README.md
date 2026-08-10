@@ -25,10 +25,13 @@ src/
   layouts/Base.astro   # head, meta, OG tags
   pages/index.astro    # boot screen + terminal markup + scoped styles
   styles/global.css    # design tokens (palette, type)
+  pages/sitemap.xml.js # sitemap, rss and llms.txt are generated from the routes
 public/
   terminal.js          # terminal engine (commands, status, Ask Greg)
   _headers             # Cloudflare security + cache headers
-  favicon.svg, robots.txt, sitemap.xml
+  favicon.svg, robots.txt
+scripts/
+  check-urls.mjs       # post-build guard: no page may link to a redirect
 ```
 
 ---
@@ -43,7 +46,32 @@ npm run dev        # http://localhost:4321
 npm run build      # outputs to ./dist
 npm run preview    # serve the production build locally
 npm run lint       # astro check
+npm run verify     # check dist/ for self-inflicted redirects (run after build)
 ```
+
+---
+
+## URLs and redirects
+
+**Every page URL ends in a slash: `/about/`, not `/about`.** Astro builds pages as
+directories, so `/about/index.html` is the file and `/about/` is the URL. The
+canonical tag, the sitemap, the nav and the JSON-LD all have to agree with that,
+and Cloudflare has to be told the same thing:
+
+- `astro.config.mjs` — `trailingSlash: 'always'`, so the dev server behaves like
+  production instead of hiding the difference until deploy.
+- `wrangler.jsonc` — `html_handling: "force-trailing-slash"`, pinned rather than
+  inferred from the shape of the build output.
+- `dist/_redirects` — generated at build time from the route table, sending each
+  unslashed path to its canonical form with a **301**. Cloudflare's built-in
+  trailing-slash redirect is a 307, and a temporary redirect tells Google to keep
+  the old URL indexed instead of folding it into the canonical.
+
+`npm run verify` (`scripts/check-urls.mjs`) enforces all of it against the built
+output: every sitemap entry, canonical tag and internal link must resolve to a 200,
+and every route's unslashed form must be a 301. It runs in CI after the build.
+Adding a page means adding it to `routes` in `src/data/content.js` — with the
+slash — and everything else follows.
 
 ---
 
