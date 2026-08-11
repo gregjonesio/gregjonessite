@@ -15,10 +15,15 @@ const KNOWN_EVENTS = new Set([
 ]);
 
 async function visitorId(request, env) {
+  // Fail closed: never hash with a fallback salt. A literal here would live in a
+  // public repo, so a lost STATS_SALT binding would silently downgrade the visitor
+  // hash to something anyone could recompute while the stats still looked correct.
+  // Skipping the count instead makes the failure visible as a flat visitor line.
+  const salt = env.STATS_SALT;
+  if (!salt) return null;
   const ip = request.headers.get('cf-connecting-ip') || '';
   const ua = request.headers.get('user-agent') || '';
   const day = new Date().toISOString().slice(0, 10);
-  const salt = env.STATS_SALT || 'gregjones-io-stats';
   const data = new TextEncoder().encode(`${ip}|${ua}|${day}|${salt}`);
   const digest = await crypto.subtle.digest('SHA-256', data);
   return [...new Uint8Array(digest)].slice(0, 12).map((b) => b.toString(16).padStart(2, '0')).join('');
