@@ -83,7 +83,7 @@ export const identity = {
 export const links = [
   { label: 'Writing', href: 'https://gregjonesio.substack.com', note: 'Weekly essays', sameAs: true },
   { label: 'GitHub', href: 'https://github.com/gregjonesio/family-office-ai-skills', note: 'The public specification layer', sameAs: true },
-  { label: 'LinkedIn', href: 'https://www.linkedin.com/in/gregjonesmba', note: null, sameAs: true },
+  { label: 'LinkedIn', href: 'https://www.linkedin.com/in/gregjonesio', note: null, sameAs: true },
   { label: 'Dashboard', href: 'https://dashboard.gregjones.io', note: 'Live operating metrics', sameAs: true },
   { label: 'TailYield', href: 'https://tailyield.ai', note: 'Charter economics for aircraft owners', sameAs: true },
   { label: 'SWS Venture Capital', href: 'https://www.swsventurecap.com/greg-jones', note: 'Firm bio', sameAs: true },
