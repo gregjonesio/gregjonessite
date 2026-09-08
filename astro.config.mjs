@@ -60,4 +60,16 @@ export default defineConfig({
   build: { format: 'directory', inlineStylesheets: 'auto' },
   devToolbar: { enabled: false },
   integrations: [permanentTrailingSlashRedirects()],
+  vite: {
+    build: {
+      // Vite 8 minifies CSS with Lightning CSS, which rewrites the output for
+      // whatever browsers `cssTarget` names. Left at its default it turned
+      // `@media (max-width: 560px)` into range syntax (`width <= 560px`),
+      // which Safari before 16.4 ignores entirely, so the mobile rules would
+      // silently stop applying there. These are the targets the site shipped
+      // against through Astro 4 (Vite 5's defaults); Lightning CSS keeps the
+      // media queries in their classic form for them.
+      cssTarget: ['chrome87', 'edge88', 'firefox78', 'safari14'],
+    },
+  },
 });
