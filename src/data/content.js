@@ -112,6 +112,9 @@ export const routes = [
   { path: '/automation/', label: 'Automation', inNav: true,  changefreq: 'weekly',  priority: '0.8' },
   { path: '/building/',   label: 'Building',   inNav: true,  changefreq: 'monthly', priority: '0.7' },
   { path: '/writing/',    label: 'Writing',    inNav: true,  changefreq: 'weekly',  priority: '0.8' },
+  // Required by the A2P 10DLC campaign registration for the assistant's phone number (2026-10-05). Not in the nav.
+  { path: '/milo/privacy/', label: 'Privacy Policy',       inNav: false, changefreq: 'yearly', priority: '0.1' },
+  { path: '/milo/terms/',   label: 'Terms and Conditions', inNav: false, changefreq: 'yearly', priority: '0.1' },
 ];
 
 /** Primary navigation. Derived, so it can never drift from the sitemap. */
