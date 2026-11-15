@@ -60,8 +60,8 @@ ${profiles}
 
 ## Notes
 
-- Operating metrics published on this site are directional figures, not
-  audited results, and are labelled as such.
+- Operating metrics published on this site are measured from logged runs,
+  not audited. No estimates of hours or dollars saved are published.
 - The site sets no cookies.
 `;
 

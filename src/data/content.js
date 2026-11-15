@@ -157,7 +157,7 @@ export const sections = {
       'The unit of design is the system, not the task. A workflow saves time. An operating system changes what the organization can attempt at all. Ten disconnected automations are a collection. Three composed systems are capacity.',
       'The most important property of anything acting on the operation’s behalf is what it is not allowed to do. That list is written in advance by the accountable person, not negotiated with the machine in the moment.',
       'The failure mode of automation is not error. It is silence. Every scheduled process here emits a heartbeat that something else watches, so a job that quietly stops running is a fact rather than a discovery made six weeks later.',
-      'Current counts run live on the public dashboard. They are directional operating figures, not audited results, and they are labeled that way on purpose.',
+      'Current counts run live on the public dashboard. They are measured from logged runs, not audited, and the dashboard shows no estimates of hours or dollars saved.',
     ],
     lines: [
       'Manual work is technical debt.',
@@ -260,9 +260,11 @@ export const essays = [
  * Live values come from the public endpoint below and match
  * dashboard.gregjones.io. The `base` values are the fallback rendered when the
  * fetch fails or times out, so they must be refreshed whenever they drift far
- * from live. Last reconciled against the live endpoint 2026-08-05.
+ * from live. Last reconciled against the live endpoint 2026-11-14.
  *
- * These are directional operating figures, not audited results.
+ * Every figure is measured from logged runs. No time or dollar estimates are
+ * shown (hours saved was removed 2026-11-14 with the dashboard's estimates).
+ * Measured is not audited.
  */
 export const status = {
   source: 'https://wsyfqadzlizhkauyfpbr.supabase.co/functions/v1/public-metrics',
@@ -270,12 +272,11 @@ export const status = {
   /** Shown under the grid when values came from `base` instead of the feed. */
   staleNotice: 'Live feed unavailable. Showing last reconciled values.',
   metrics: [
-    { key: 'active_automations',    label: 'Active automations',    base: 19,  format: 'int' },
-    { key: 'active_agents',         label: 'Active agents',         base: 27,  format: 'int' },
-    { key: 'executions_this_month', label: 'Executions this month', base: 244, format: 'int' },
-    { key: 'connected_systems',     label: 'Connected systems',     base: 23,  format: 'int' },
-    { key: 'hours_saved_month',     label: 'Hours saved (30d)',     base: 34,  format: 'dec' },
-    { key: 'success_rate',          label: 'Success rate',          base: 99.8, format: 'pct' },
+    { key: 'active_automations',    label: 'Active automations',    base: 12,    format: 'int' },
+    { key: 'active_agents',         label: 'Active agents',         base: 45,    format: 'int' },
+    { key: 'executions_this_month', label: 'Executions this month', base: 10098, format: 'int' },
+    { key: 'connected_systems',     label: 'Connected systems',     base: 23,    format: 'int' },
+    { key: 'success_rate',          label: 'Success rate',          base: 98.4,  format: 'pct' },
   ],
 };
 
@@ -351,7 +352,7 @@ export const askGreg = {
       match: ['verify', 'proof', 'prove it', 'sources', 'credentials', 'linkedin', 'github', 'substack', 'where can i read', 'your writing', 'essays', 'blog', 'dashboard', 'track record'],
       a: [
         'Essays at gregjonesio.substack.com. The public specification layer at github.com/gregjonesio/family-office-ai-skills. Live operating metrics at dashboard.gregjones.io. Firm bio at swsventurecap.com.',
-        'The dashboard numbers are directional operating figures rather than audited results, and they are labeled that way there too.',
+        'The dashboard numbers are measured from logged runs rather than audited, and it shows no estimates of hours or dollars saved.',
       ],
     },
     {
@@ -448,7 +449,7 @@ export const askGreg = {
       match: ['how do you measure', 'measurement', 'metrics', 'roi', 'results', 'how do you know', 'prove the value', 'hours saved'],
       a: [
         'Measure honestly or not at all. Directional estimates labeled directional, one record per real event, no synthetic data, and activity never converted into claimed outcomes.',
-        'A measurement system that flatters its owner is a liability wearing a dashboard. The numbers on mine are public at dashboard.gregjones.io, and they are labeled directional rather than audited, because that is what they are.',
+        'A measurement system that flatters its owner is a liability wearing a dashboard. The numbers on mine are public at dashboard.gregjones.io, and they are only what was measured: runs, successes and failures. I took the hours-saved and dollar figures off, because they were assumptions multiplied by run counts.',
       ],
     },
     {
